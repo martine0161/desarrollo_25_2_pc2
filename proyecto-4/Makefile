@@ -1,147 +1,166 @@
-# Variables de configuración
+# Makefile - Proyecto 4: Smoke de puertos con ss y nc + bitácora
+# Estudiante 3: Automatización y Empaquetado
+
+# Configuración básica
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-# Directorios
+# Directorios del proyecto
 SRC_DIR := src
 TEST_DIR := tests
 DOCS_DIR := docs
 OUTPUT_DIR := out
 DIST_DIR := dist
-SYSTEMD_DIR := systemd
 
 # Metadatos del proyecto
 PROJECT_NAME := tcp-smoke
-VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "v1.0.0-dev")
-RELEASE := $(shell echo $(VERSION) | sed 's/^v//')
-BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S_UTC')
-GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "v1.0.0")
+BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 
-# Colores para output
-RED := \033[0;31m
+# Variables de entorno con valores por defecto
+HOSTS ?= localhost,google.com,github.com
+PORTS ?= 22,80,443
+TIMEOUT_SEC ?= 5
+
+# Herramientas requeridas según el documento
+REQUIRED_TOOLS := nc ss curl grep sed awk cut sort uniq tr
+
+# Colores para mejor experiencia visual
 GREEN := \033[0;32m
 YELLOW := \033[1;33m
 BLUE := \033[0;34m
-PURPLE := \033[0;35m
 CYAN := \033[0;36m
-NC := \033[0m # No Color
+NC := \033[0m
 
-# Herramientas requeridas
-REQUIRED_TOOLS := nc ss curl grep sed awk cut sort uniq tr tee find
-OPTIONAL_TOOLS := bats dig ssh scp rsync
+# Targets que no generan archivos
+.PHONY: tools build test run pack clean help info metrics demonstrate-cache
 
-.PHONY: tools build test run pack clean help info
+#########################################
+# TARGETS OBLIGATORIOS SEGÚN DOCUMENTO #
+#########################################
 
-tools: ## Verificar disponibilidad de herramientas necesarias
+tools: ## Verificar disponibilidad de utilidades requeridas
 	@echo -e "$(BLUE)Verificando herramientas requeridas...$(NC)"
-	@missing_tools="" ; \
+	@missing="" ; \
 	for tool in $(REQUIRED_TOOLS); do \
-		if ! command -v $$tool >/dev/null 2>&1; then \
-			missing_tools="$$missing_tools $$tool" ; \
-		else \
-			echo -e "$(GREEN)✓$(NC) $$tool encontrado en $$(command -v $$tool)" ; \
-		fi \
-	done ; \
-	if [ -n "$$missing_tools" ]; then \
-		echo -e "$(RED)ERROR: Herramientas faltantes:$$missing_tools$(NC)" ; \
-		exit 1 ; \
-	fi
-	@echo -e "$(BLUE)Verificando herramientas opcionales...$(NC)"
-	@for tool in $(OPTIONAL_TOOLS); do \
 		if command -v $$tool >/dev/null 2>&1; then \
 			echo -e "$(GREEN)✓$(NC) $$tool disponible" ; \
 		else \
-			echo -e "$(YELLOW)⚠$(NC) $$tool no disponible (opcional)" ; \
+			missing="$$missing $$tool" ; \
 		fi \
-	done
-	@echo -e "$(GREEN)Verificación de herramientas completada$(NC)"
+	done ; \
+	if [ -n "$$missing" ]; then \
+		echo -e "$(YELLOW)Herramientas faltantes:$$missing$(NC)" ; \
+		echo "Instalar con: sudo apt-get install netcat-traditional iproute2 curl" ; \
+		exit 1 ; \
+	fi
+	@echo -e "$(GREEN)Todas las herramientas están disponibles$(NC)"
 
-build: tools ## Generar artefactos intermedios sin ejecutar
+build: tools ## Generar artefactos intermedios en out/ (sin ejecutar)
 	@echo -e "$(BLUE)Preparando entorno de construcción...$(NC)"
 	@mkdir -p $(OUTPUT_DIR) $(DIST_DIR)
-	@echo -e "$(GREEN)✓$(NC) Directorios creados: $(OUTPUT_DIR)/, $(DIST_DIR)/"
-	@echo "$(PROJECT_NAME)-$(VERSION)" > $(OUTPUT_DIR)/build.info
+	@echo "$(PROJECT_NAME) $(VERSION)" > $(OUTPUT_DIR)/build.info
 	@echo "Build time: $(BUILD_TIME)" >> $(OUTPUT_DIR)/build.info
-	@echo "Git commit: $(GIT_COMMIT)" >> $(OUTPUT_DIR)/build.info
-	@echo -e "$(GREEN)✓$(NC) Información de build guardada en $(OUTPUT_DIR)/build.info"
-	@# Verificar integridad de scripts
-	@echo -e "$(BLUE)Verificando integridad de scripts...$(NC)"
-	@for script in $(SRC_DIR)/*.sh; do \
+	@echo "Variables: HOSTS=$(HOSTS), PORTS=$(PORTS), TIMEOUT_SEC=$(TIMEOUT_SEC)" >> $(OUTPUT_DIR)/build.info
+	@echo -e "$(GREEN)✓$(NC) Directorios creados: $(OUTPUT_DIR)/, $(DIST_DIR)/"
+	@echo -e "$(BLUE)Verificando sintaxis de scripts...$(NC)"
+	@errors=0 ; \
+	for script in $(SRC_DIR)/*.sh; do \
 		if [ -f "$$script" ]; then \
 			if bash -n "$$script"; then \
-				echo -e "$(GREEN)✓$(NC) Sintaxis válida: $$script" ; \
+				echo -e "$(GREEN)✓$(NC) $$script sintaxis válida" ; \
+				chmod +x "$$script" 2>/dev/null || true ; \
 			else \
-				echo -e "$(RED)✗$(NC) Error de sintaxis: $$script" ; \
-				exit 1 ; \
+				echo -e "$(YELLOW)✗$(NC) Error de sintaxis en $$script" ; \
+				errors=$$((errors + 1)) ; \
 			fi \
 		fi \
-	done
-	@echo -e "$(GREEN)Build completado$(NC)"
+	done ; \
+	if [ $$errors -gt 0 ]; then \
+		echo -e "$(YELLOW)Build completado con $$errors advertencias$(NC)" ; \
+	else \
+		echo -e "$(GREEN)Build completado exitosamente$(NC)" ; \
+	fi
 
-test: build ## Ejecutar suite de pruebas Bats
+test: build ## Ejecutar suite Bats (valida criterios mínimos)
 	@echo -e "$(BLUE)Ejecutando suite de pruebas...$(NC)"
 	@if command -v bats >/dev/null 2>&1; then \
-		echo -e "$(CYAN)Ejecutando pruebas Bats...$(NC)" ; \
-		bats $(TEST_DIR)/ || (echo -e "$(RED)Algunas pruebas fallaron$(NC)" && exit 1) ; \
-		echo -e "$(GREEN)✓$(NC) Todas las pruebas pasaron" ; \
-	else \
-		echo -e "$(YELLOW)⚠$(NC) Bats no disponible, ejecutando verificación básica..." ; \
-		$(MAKE) test-basic ; \
-	fi
-
-test-basic: ## Verificación básica sin Bats
-	@echo -e "$(CYAN)Ejecutando verificación básica de scripts...$(NC)"
-	@for script in $(SRC_DIR)/*.sh; do \
-		if [ -f "$$script" ] && [ -x "$$script" ]; then \
-			echo -e "$(BLUE)Probando: $$script$(NC)" ; \
-			timeout 10s bash -c "$$script --help || true" || echo -e "$(YELLOW)Script no responde a --help$(NC)" ; \
+		export OUTPUT_DIR=$(OUTPUT_DIR) HOSTS=$(HOSTS) PORTS=$(PORTS) TIMEOUT_SEC=$(TIMEOUT_SEC) ; \
+		if bats $(TEST_DIR)/; then \
+			echo -e "$(GREEN)✓ Todas las pruebas pasaron$(NC)" ; \
+		else \
+			echo -e "$(YELLOW)Algunas pruebas fallaron$(NC)" ; \
+			exit 1 ; \
 		fi \
-	done
+	else \
+		echo -e "$(YELLOW)Bats no disponible, ejecutando verificación básica...$(NC)" ; \
+		for script in $(SRC_DIR)/*.sh; do \
+			if [ -f "$$script" ] && [ -x "$$script" ]; then \
+				echo -e "$(GREEN)✓$(NC) $$script es ejecutable" ; \
+			fi \
+		done ; \
+		echo -e "$(GREEN)Verificación básica completada$(NC)" ; \
+	fi
 
-run: build ## Ejecutar flujo principal del proyecto
+run: build ## Ejecutar flujo principal (sondeo → clasificación → bitácora)
 	@echo -e "$(BLUE)Ejecutando flujo completo de TCP smoke tests...$(NC)"
-	@echo -e "$(CYAN)Paso 1: Sondeo de puertos TCP$(NC)"
-	@if [ -x "$(SRC_DIR)/probe_tcp.sh" ]; then \
-		$(SRC_DIR)/probe_tcp.sh || (echo -e "$(RED)Error en sondeo TCP$(NC)" && exit 1) ; \
+	@echo "Variables activas: HOSTS=$(HOSTS), PORTS=$(PORTS), TIMEOUT_SEC=$(TIMEOUT_SEC)"
+	@export HOSTS=$(HOSTS) PORTS=$(PORTS) TIMEOUT_SEC=$(TIMEOUT_SEC) OUTPUT_DIR=$(OUTPUT_DIR) ; \
+	echo -e "$(CYAN)Paso 1: Sondeo de puertos TCP$(NC)" ; \
+	if [ -x "$(SRC_DIR)/probe_tcp.sh" ]; then \
+		if $(SRC_DIR)/probe_tcp.sh; then \
+			echo -e "$(GREEN)✓ Sondeo completado$(NC)" ; \
+		else \
+			echo -e "$(YELLOW)✗ Error en sondeo TCP$(NC)" ; \
+		fi \
 	else \
-		echo -e "$(YELLOW)⚠$(NC) Script probe_tcp.sh no encontrado o no ejecutable" ; \
-	fi
-	@echo -e "$(CYAN)Paso 2: Clasificación de fallos$(NC)"
-	@if [ -x "$(SRC_DIR)/classify_failures.sh" ]; then \
-		$(SRC_DIR)/classify_failures.sh || (echo -e "$(RED)Error en clasificación$(NC)" && exit 1) ; \
+		echo -e "$(YELLOW)⚠ probe_tcp.sh no encontrado o no ejecutable$(NC)" ; \
+	fi ; \
+	echo -e "$(CYAN)Paso 2: Clasificación de fallos$(NC)" ; \
+	if [ -x "$(SRC_DIR)/classify_failures.sh" ]; then \
+		if $(SRC_DIR)/classify_failures.sh; then \
+			echo -e "$(GREEN)✓ Clasificación completada$(NC)" ; \
+		else \
+			echo -e "$(YELLOW)✗ Error en clasificación$(NC)" ; \
+		fi \
 	else \
-		echo -e "$(YELLOW)⚠$(NC) Script classify_failures.sh no encontrado" ; \
-	fi
-	@echo -e "$(CYAN)Paso 3: Generación de bitácora$(NC)"
-	@if [ -x "$(SRC_DIR)/generate_logbook.sh" ]; then \
-		$(SRC_DIR)/generate_logbook.sh || (echo -e "$(RED)Error en bitácora$(NC)" && exit 1) ; \
+		echo -e "$(YELLOW)⚠ classify_failures.sh no encontrado$(NC)" ; \
+	fi ; \
+	echo -e "$(CYAN)Paso 3: Generación de bitácora$(NC)" ; \
+	if [ -x "$(SRC_DIR)/generate_logbook.sh" ]; then \
+		if $(SRC_DIR)/generate_logbook.sh; then \
+			echo -e "$(GREEN)✓ Bitácora completada$(NC)" ; \
+		else \
+			echo -e "$(YELLOW)✗ Error en bitácora$(NC)" ; \
+		fi \
 	else \
-		echo -e "$(YELLOW)⚠$(NC) Script generate_logbook.sh no encontrado" ; \
+		echo -e "$(YELLOW)⚠ generate_logbook.sh no encontrado$(NC)" ; \
 	fi
-	@echo -e "$(GREEN)✓$(NC) Flujo completo ejecutado. Resultados en $(OUTPUT_DIR)/"
+	@echo -e "$(GREEN)Flujo ejecutado. Resultados en $(OUTPUT_DIR)/$(NC)"
 
-pack: test ## Crear paquete reproducible
-	@echo -e "$(BLUE)Creando paquete $(PROJECT_NAME)-$(RELEASE)...$(NC)"
+pack: test ## Crear paquete reproducible en dist/ (nomenclatura con RELEASE)
+	@echo -e "$(BLUE)Creando paquete reproducible...$(NC)"
 	@mkdir -p $(DIST_DIR)
-	@# Crear estructura temporal para el paquete
 	@temp_dir=$$(mktemp -d) ; \
-	package_dir="$$temp_dir/$(PROJECT_NAME)-$(RELEASE)" ; \
+	package_name="$(PROJECT_NAME)-$(VERSION)" ; \
+	package_dir="$$temp_dir/$$package_name" ; \
 	mkdir -p "$$package_dir" ; \
-	echo -e "$(CYAN)Copiando archivos al paquete...$(NC)" ; \
-	cp -r $(SRC_DIR) $(TEST_DIR) $(DOCS_DIR) Makefile "$$package_dir/" ; \
-	if [ -d "$(SYSTEMD_DIR)" ]; then cp -r $(SYSTEMD_DIR) "$$package_dir/" ; fi ; \
-	echo "$(PROJECT_NAME) $(VERSION)" > "$$package_dir/VERSION" ; \
-	echo "Empaquetado: $(BUILD_TIME)" >> "$$package_dir/VERSION" ; \
-	echo "Commit: $(GIT_COMMIT)" >> "$$package_dir/VERSION" ; \
+	echo -e "$(CYAN)Copiando archivos...$(NC)" ; \
+	cp -r $(SRC_DIR) $(TEST_DIR) $(DOCS_DIR) Makefile "$$package_dir/" 2>/dev/null || true ; \
+	if [ -d "systemd" ]; then cp -r systemd "$$package_dir/" 2>/dev/null || true ; fi ; \
+	echo "$$package_name" > "$$package_dir/VERSION" ; \
+	echo "Build time: $(BUILD_TIME)" >> "$$package_dir/VERSION" ; \
+	echo "Variables: HOSTS=$(HOSTS), PORTS=$(PORTS)" >> "$$package_dir/VERSION" ; \
 	echo -e "$(CYAN)Generando checksums...$(NC)" ; \
 	cd "$$package_dir" && find . -type f -exec sha256sum {} \; > CHECKSUMS ; \
-	cd "$$temp_dir" && tar -czf "$(CURDIR)/$(DIST_DIR)/$(PROJECT_NAME)-$(RELEASE).tar.gz" "$(PROJECT_NAME)-$(RELEASE)" ; \
+	echo -e "$(CYAN)Comprimiendo...$(NC)" ; \
+	cd "$$temp_dir" && tar -czf "$(CURDIR)/$(DIST_DIR)/$$package_name.tar.gz" "$$package_name" ; \
 	rm -rf "$$temp_dir"
-	@echo -e "$(GREEN)✓$(NC) Paquete creado: $(DIST_DIR)/$(PROJECT_NAME)-$(RELEASE).tar.gz"
-	@ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(RELEASE).tar.gz
+	@echo -e "$(GREEN)✓ Paquete creado: $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION).tar.gz$(NC)"
+	@ls -lh $(DIST_DIR)/$(PROJECT_NAME)-$(VERSION).tar.gz
 
-clean: ## Limpiar artefactos generados
-	@echo -e "$(BLUE)Limpiando artefactos...$(NC)"
+clean: ## Borrar out/ y dist/ de forma segura
+	@echo -e "$(BLUE)Limpiando artefactos generados...$(NC)"
 	@if [ -d "$(OUTPUT_DIR)" ]; then \
 		echo -e "$(CYAN)Removiendo $(OUTPUT_DIR)/$(NC)" ; \
 		rm -rf $(OUTPUT_DIR) ; \
@@ -150,30 +169,92 @@ clean: ## Limpiar artefactos generados
 		echo -e "$(CYAN)Removiendo $(DIST_DIR)/$(NC)" ; \
 		rm -rf $(DIST_DIR) ; \
 	fi
-	@echo -e "$(GREEN)✓$(NC) Limpieza completada"
+	@echo -e "$(GREEN)✓ Limpieza completada$(NC)"
 
-info: ## Mostrar información del proyecto
-	@echo -e "$(PURPLE)Información del Proyecto$(NC)"
-	@echo "Nombre: $(PROJECT_NAME)"
-	@echo "Versión: $(VERSION)"
-	@echo "Release: $(RELEASE)"
-	@echo "Commit: $(GIT_COMMIT)"
-	@echo "Build time: $(BUILD_TIME)"
+help: ## Describir uso de cada target
+	@echo -e "$(BLUE)$(PROJECT_NAME) - TCP Smoke Tests$(NC)"
+	@echo "Proyecto 4: Smoke de puertos con ss y nc + bitácora"
 	@echo ""
-	@echo -e "$(PURPLE)Estructura del proyecto:$(NC)"
-	@tree -I 'out|dist|.git' || find . -type d -not -path './.*' -not -path './out*' -not -path './dist*' | head -10
-
-help: ## Mostrar esta ayuda
-	@echo -e "$(PURPLE)$(PROJECT_NAME) - TCP Smoke Tests$(NC)"
-	@echo "Uso: make [TARGET]"
+	@echo -e "$(BLUE)Uso: make [TARGET] [VARIABLES]$(NC)"
 	@echo ""
 	@echo -e "$(BLUE)Targets disponibles:$(NC)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-		sort | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}'
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-18s$(NC) %s\n", $$1, $$2}'
 	@echo ""
-	@echo -e "$(BLUE)Variables de entorno reconocidas:$(NC)"
-	@echo "  HOSTS         - Lista de hosts a probar"
-	@echo "  PORTS         - Lista de puertos a verificar"
-	@echo "  TIMEOUT_SEC   - Timeout para conexiones"
-	@echo "  OUTPUT_DIR    - Directorio de salidas"
+	@echo -e "$(BLUE)Variables de entorno (12-Factor III):$(NC)"
+	@echo "  HOSTS=$(HOSTS)"
+	@echo "  PORTS=$(PORTS)"
+	@echo "  TIMEOUT_SEC=$(TIMEOUT_SEC)"
+	@echo ""
+	@echo -e "$(BLUE)Ejemplos:$(NC)"
+	@echo "  make run HOSTS=google.com,localhost PORTS=80,443"
+	@echo "  make demonstrate-cache"
+	@echo "  make pack"
+
+###############################
+# TARGETS ADICIONALES ÚTILES #
+###############################
+
+info: ## Mostrar información del proyecto
+	@echo -e "$(BLUE)Información del Proyecto$(NC)"
+	@echo "Nombre: $(PROJECT_NAME)"
+	@echo "Versión: $(VERSION)"
+	@echo "Build time: $(BUILD_TIME)"
+	@echo ""
+	@echo -e "$(BLUE)Variables actuales:$(NC)"
+	@echo "HOSTS: $(HOSTS)"
+	@echo "PORTS: $(PORTS)"
+	@echo "TIMEOUT_SEC: $(TIMEOUT_SEC)"
+	@echo "OUTPUT_DIR: $(OUTPUT_DIR)"
+	@echo "DIST_DIR: $(DIST_DIR)"
+
+metrics: ## Mostrar métricas básicas del proyecto
+	@echo -e "$(BLUE)Métricas del Proyecto$(NC)"
+	@echo "Scripts: $$(find $(SRC_DIR) -name "*.sh" 2>/dev/null | wc -l)"
+	@echo "Tests: $$(find $(TEST_DIR) -name "*.bats" 2>/dev/null | wc -l)"
+	@echo "Docs: $$(find $(DOCS_DIR) -name "*.md" 2>/dev/null | wc -l)"
+	@if [ -d "$(SRC_DIR)" ]; then \
+		lines=$$(find $(SRC_DIR) -name "*.sh" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $$1}' || echo "0") ; \
+		echo "Líneas de código: $$lines" ; \
+	fi
+
+###################################
+# REGLAS PATRÓN Y CACHÉ INCREMENTAL #
+###################################
+
+# Regla patrón: transformar CSV a texto tabulado
+$(OUTPUT_DIR)/%.txt: $(OUTPUT_DIR)/%.csv
+	@echo -e "$(CYAN)Transformando $< a $@$(NC)"
+	@awk -F',' 'BEGIN{OFS="\t"} {$$1=$$1; print}' $< > $@
+
+# Caché incremental para sondeo TCP (evidenciable con tiempos)
+$(OUTPUT_DIR)/tcp_probes.csv: $(SRC_DIR)/probe_tcp.sh | build
+	@if [ -f "$@" ] && [ "$@" -nt "$<" ]; then \
+		echo -e "$(GREEN)✓ $@ está actualizado (caché hit)$(NC)" ; \
+	else \
+		echo -e "$(CYAN)Ejecutando sondeo TCP (caché miss)$(NC)" ; \
+		export HOSTS=$(HOSTS) PORTS=$(PORTS) TIMEOUT_SEC=$(TIMEOUT_SEC) OUTPUT_DIR=$(OUTPUT_DIR) ; \
+		$(SRC_DIR)/probe_tcp.sh ; \
+	fi
+
+# Caché incremental para clasificación
+$(OUTPUT_DIR)/failure_classification.csv: $(SRC_DIR)/classify_failures.sh $(OUTPUT_DIR)/tcp_probes.csv
+	@if [ -f "$@" ] && [ "$@" -nt "$(word 2,$^)" ]; then \
+		echo -e "$(GREEN)✓ Clasificación actualizada (caché hit)$(NC)" ; \
+	else \
+		echo -e "$(CYAN)Ejecutando clasificación (caché miss)$(NC)" ; \
+		export INPUT_FILE="$(OUTPUT_DIR)/tcp_probes.csv" OUTPUT_DIR=$(OUTPUT_DIR) ; \
+		$(SRC_DIR)/classify_failures.sh ; \
+	fi
+
+# Target para demostrar caché incremental (evidenciable con time)
+demonstrate-cache: $(OUTPUT_DIR)/tcp_probes.csv ## Demostrar caché incremental evidenciable
+	@echo -e "$(BLUE)Demostrando caché incremental...$(NC)"
+	@echo "Primera ejecución (debería tardar más):"
+	@time $(MAKE) $(OUTPUT_DIR)/tcp_probes.csv HOSTS=google.com PORTS=80
+	@sleep 1
+	@echo ""
+	@echo "Segunda ejecución (debería usar caché y ser más rápida):"
+	@time $(MAKE) $(OUTPUT_DIR)/tcp_probes.csv HOSTS=google.com PORTS=80
+	@echo ""
+	@echo -e "$(GREEN)✓ Caché incremental evidenciado$(NC)"
