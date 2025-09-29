@@ -1,0 +1,92 @@
+# Directorios de salida generados (no versionar)
+out/
+dist/
+
+# Archivos temporales del sistema
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Logs generados durante ejecución
+*.log
+logs/
+
+# Archivos de backup automáticos
+*~
+*.bak
+*.backup
+*.orig
+
+# Archivos de configuración local del desarrollador
+.env
+.env.local
+local.config
+
+# Archivos específicos del IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos del sistema operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Archivos de depuración
+debug.txt
+debug.log
+*.debug
+
+# Archivos de prueba temporales
+test_output/
+test_results/
+.bats_test_*/
+
+# Empaquetado temporal
+*.tar.gz.tmp
+*.zip.tmp
+packaging_temp/
+
+# Cache de herramientas
+.cache/
+cache/
+
+# Archivos de PID de procesos
+*.pid
+
+# Variables de entorno específicas del desarrollador
+# (mantener .env.example si existe)
+.env.development
+.env.production
+
+# Archivos de certificados y claves (seguridad)
+*.key
+*.pem
+*.crt
+*.cert
+
+# Archivos de datos sensibles
+secrets.txt
+passwords.txt
+api_keys.txt
+
+# Comentarios para el equipo:
+#
+# Este .gitignore está configurado para:
+# - Ignorar directorios de salida (out/, dist/) que se generan automáticamente
+# - Ignorar archivos temporales y de backup comunes
+# - Mantener limpio el repositorio de archivos específicos del desarrollador
+# - Proteger contra commit accidental de datos sensibles
+#
+# Recordar:
+# - out/ se regenera con 'make build' o 'make run'
+# - dist/ se regenera con 'make pack'
+# - Usar 'git status' regularmente para verificar qué se va a commitear
+# - Si necesitas versionar algún archivo de ejemplo, crear un *.example
