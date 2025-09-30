@@ -2,12 +2,13 @@
 # Clasifica segun tipos de errores para resolución de DNS
 set -euo pipefail
 
+FILE_OUTPUT="nc_result.csv"
 # Función para mapear errores de resolucion de NDS
 dns_check() {
   local HOST="${1:-}"
   local PORT="${2:-}"
   local OUTPUT_DIR="${3:-./out}"
-  local BITACORA="${OUTPUT_DIR}/bitacora.csv"
+  local PATH_FILE_OUTPUT="${OUTPUT_DIR}/${FILE_OUTPUT}"
 
   # Verifica que los parametros HOST y PORT se ingresen
   if [ -z "$HOST" ] || [ -z "$PORT" ]; then
@@ -24,8 +25,8 @@ dns_check() {
   fi
 
   # Crear bitacora.csv si no existe con encabezado
-  if [ ! -f "$BITACORA" ]; then
-    echo "timestamp, host, port, cause" > "$BITACORA"
+  if [ ! -f "$PATH_FILE_OUTPUT" ]; then
+    echo "timestamp, host, port, cause" > "$PATH_FILE_OUTPUT"
   fi
 
   # Crear archivo temporal
@@ -72,7 +73,7 @@ dns_check() {
 
   # Registrar en bitacora
   ts="$(date -u +"%d-%m-%y %H:%M:%S")"
-  echo "$ts, $HOST, $PORT, $cause" >> "$BITACORA"
+  echo "$ts, $HOST, $PORT, $cause" >> "$PATH_FILE_OUTPUT"
 
   # Mostrar resultado en consola
   echo "$HOST $PORT"
@@ -83,16 +84,16 @@ dns_check() {
 # Función para mostrar el reporte en bitacora
 show_report() {
     local OUTPUT_DIR="${1:-./out}"
-    local BITACORA="${OUTPUT_DIR}/bitacora.csv"
+    local PATH_FILE_OUTPUT="${OUTPUT_DIR}/${FILE_OUTPUT}"
 
-    if [ ! -f "$BITACORA" ]; then
-        echo "No hay datos de bitácora en $BITACORA" >&2
+    if [ ! -f "$PATH_FILE_OUTPUT" ]; then
+        echo "No hay datos de bitácora en $PATH_FILE_OUTPUT" >&2
         return 1
     fi
 
     echo "Reporte de monitoreo:"
     echo "===================="
-    cat "$BITACORA" | column -t -s ","
+    cat "$PATH_FILE_OUTPUT" | column -t -s ","
 }
 
 # Función de ayuda
@@ -102,7 +103,7 @@ Uso: $0 <comando> [parámetros]
 
 Comandos disponibles:
   dns_check <host> <puerto> [out_dir]  - Resuelve DNS de host ingresado
-  show_report [out_dir]                - Muestra el reporte de bitácora
+  show_report [out_dir]                - Muestra el reporte generado por dns_check
   help                                 - Muestra esta ayuda
 EOF
 }

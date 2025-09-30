@@ -29,3 +29,8 @@ help: ## Muestra los targets disponibles para el proyecto
 dns_check: ## Verifica resolución de DNS generando bitacora de resultados
 	@echo "Prueba de resolución de DNS"
 	@./$(SRC_DIR)/classify_failures.sh dns_check $(HOST) $(PORT) ./$(OUT_DIR)
+
+.PHONY: show_report
+show_report: ## Muestra reporte de resultados para dns_check
+	@echo "Reporte de resultados de dns_check"
+	@./$(SRC_DIR)/classify_failures.sh show_report ./$(OUT_DIR)
