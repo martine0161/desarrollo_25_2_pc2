@@ -1,0 +1,2 @@
+timestamp,host,port,status,latency_ms,socket_state
+2025-09-30 02:12:42,google.com,80,OPEN,46,N/A
