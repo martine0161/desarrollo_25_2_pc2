@@ -12,13 +12,16 @@ $ which nc ss bats
 /usr/bin/nc
 /usr/bin/ss
 /usr/bin/bats
+```
 
 ### Configuracion de herramientas
+```
 $ git checkout -b rama/alumno1
 $ mkdir -p src tests out docs
 $ chmod +x src/probe_tcp.sh
-
+```
 ### Ejecucion del proyecto
+```
 $ make tools
 Verificando herramientas... ✓
 
@@ -33,8 +36,9 @@ bats tests/
  ✓ probe_tcp.sh debe generar CSV con headers correctos
  ✓ puerto abierto debe reportar status OPEN
 2 tests, 0 failures
-
+```
 ### Salidas relevantes
 ![Resultados](imagenes/ResultadosTCPProbes.png)
+
 
 
