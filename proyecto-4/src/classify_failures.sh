@@ -3,12 +3,14 @@
 set -euo pipefail
 
 FILE_OUTPUT="nc_result.csv"
+RAW_FILE_OUTPUT="raw_result.csv"
 # Función para mapear errores de resolucion de NDS
 dns_check() {
   local HOST="${1:-}"
   local PORT="${2:-}"
   local OUTPUT_DIR="${3:-./out}"
   local PATH_FILE_OUTPUT="${OUTPUT_DIR}/${FILE_OUTPUT}"
+  local PATH_RAW_OUTPUT="${OUTPUT_DIR}/${RAW_FILE_OUTPUT}"
 
   # Verifica que los parametros HOST y PORT se ingresen
   if [ -z "$HOST" ] || [ -z "$PORT" ]; then
@@ -24,7 +26,12 @@ dns_check() {
       exit 1
   fi
 
-  # Crear bitacora.csv si no existe con encabezado
+  # Crear raw_result.csv si no existe con encabezado
+  if [ ! -f "$PATH_RAW_OUTPUT" ]; then
+    echo "timestamp, host, port, output" > "$PATH_RAW_OUTPUT"
+  fi
+
+  # Crear nc_result.csv si no existe con encabezado
   if [ ! -f "$PATH_FILE_OUTPUT" ]; then
     echo "timestamp, host, port, cause" > "$PATH_FILE_OUTPUT"
   fi
@@ -35,7 +42,7 @@ dns_check() {
 
   set +e
   # Ejecuta nc con timeout ignorando errores que puedan ocurrir
-  nc -4 -vzw3 "$HOST" "$PORT" >"$TMP" 2>&1
+  nc -4 -vzw3 "$HOST" "$PORT" 2>&1 | tail -n 1 >"$TMP"
   exitcode=$?
   set -e
   # Revisa que tipo de fallo se registro en la prueba
@@ -71,9 +78,11 @@ dns_check() {
     fi
   fi
 
-  # Registrar en bitacora
+  raw_output="$(tr -d '\n' < "$TMP" | sed 's/  */ /g')"
+
   ts="$(date -u +"%d-%m-%y %H:%M:%S")"
   echo "$ts, $HOST, $PORT, $cause" >> "$PATH_FILE_OUTPUT"
+  echo "$ts, $HOST, $PORT, $raw_output" >> "$PATH_RAW_OUTPUT"
 
   # Mostrar resultado en consola
   echo "$HOST $PORT"
