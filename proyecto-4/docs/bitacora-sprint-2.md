@@ -31,7 +31,7 @@ $ HOSTS="google.com,localhost,10.255.255.1" \
   make run
 ```
 #### Salida relevante
-[Respuestas](imagenes/sprint2.jpg)
+![Respuestas](imagenes/sprint2.jpg)
 Análisis: 9 sondeos totales, puertos abiertos con latencias correctas, sockets locales con información detallada.
 #### Decisiones Técnicas
 - Reemplazo de nc -w por timeout command: nc ignora flag -w en WSL, requiere timeout para control preciso
@@ -43,5 +43,6 @@ Análisis: 9 sondeos totales, puertos abiertos con latencias correctas, sockets 
 ### Limitaciones Detectadas
 nc ignora flag -w en WSL: En este entorno, nc tarda 30 segundos en cualquier fallo ignorando el timeout configurado.
 Solución implementada: Usar comando timeout de Linux para forzar límite.
+
 
 
