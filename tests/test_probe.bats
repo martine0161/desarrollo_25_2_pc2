@@ -35,3 +35,26 @@
     run grep "OPEN" out/test_open/tcp_probes.csv
     [ "$status" -eq 0 ]
 }
+
+@test "puerto cerrado debe reportar status CLOSED" {
+    # Usar puerto probablemente cerrado
+    export HOSTS="google.com"
+    export PORTS="9999"
+    export OUTPUT_DIR="out/test_closed"
+    
+    run ./src/probe_tcp.sh
+    [ "$status" -eq 0 ]
+    
+    run grep "CLOSED" out/test_closed/tcp_probes.csv
+    [ "$status" -eq 0 ]
+}
+
+@test "timeout debe manejarse correctamente" {
+    export HOSTS="10.255.255.1"  # IP no ruteable
+    export PORTS="80"
+    export TIMEOUT_SEC="1"
+    export OUTPUT_DIR="out/test_timeout"
+    
+    run timeout 10 ./src/probe_tcp.sh
+    [ "$status" -eq 0 ]
+}
