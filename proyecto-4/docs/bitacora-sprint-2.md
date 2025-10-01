@@ -1,8 +1,8 @@
 # Bitácora Sprint 2 - Clasificación de Fallos y Robustez
 
-**Responsable:** [Tu nombre]  
+**Responsable:** [Ariana Mercado ]  
 **Fecha:** 1 de octubre de 2025  
-**Rama:** rama/alumno1
+**Rama:** rama/ariana1
 
 ## Comandos Ejecutados
 
@@ -43,3 +43,4 @@ Análisis: 9 sondeos totales, puertos abiertos con latencias correctas, sockets 
 ### Limitaciones Detectadas
 nc ignora flag -w en WSL: En este entorno, nc tarda 30 segundos en cualquier fallo ignorando el timeout configurado.
 Solución implementada: Usar comando timeout de Linux para forzar límite.
+
