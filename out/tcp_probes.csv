@@ -1,0 +1,10 @@
+timestamp,host,port,status,latency_ms,socket_state,failure_reason
+2025-10-01 10:53:34,google.com,80,OPEN,43,N/A,N/A
+2025-10-01 10:53:35,google.com,443,OPEN,45,N/A,N/A
+2025-10-01 10:53:35,google.com,22,CLOSED,N/A,N/A,TIMEOUT
+2025-10-01 10:53:45,github.com,80,OPEN,103,N/A,N/A
+2025-10-01 10:53:45,github.com,443,OPEN,104,N/A,N/A
+2025-10-01 10:53:45,github.com,22,OPEN,104,N/A,N/A
+2025-10-01 10:53:46,localhost,80,OPEN,4,LISTENING,no_pid,N/A
+2025-10-01 10:53:46,localhost,443,OPEN,4,LISTENING,no_pid,N/A
+2025-10-01 10:53:46,localhost,22,CLOSED,N/A,NOT_LISTENING,no_process,TIMEOUT

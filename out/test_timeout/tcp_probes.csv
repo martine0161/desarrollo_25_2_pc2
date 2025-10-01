@@ -1,0 +1,2 @@
+timestamp,host,port,status,latency_ms,socket_state,failure_reason
+2025-10-01 02:46:41,10.255.255.1,80,CLOSED,N/A,N/A,TIMEOUT
