@@ -1,4 +1,3 @@
-```markdown
 # Contrato de Salidas - TCP Smoke Tests
 
 ## Archivos Generados en `out/`
@@ -173,4 +172,3 @@ case $? in
     1) echo "Error: archivo no encontrado" ;;
     *) echo "Error desconocido" ;;
 esac
-```

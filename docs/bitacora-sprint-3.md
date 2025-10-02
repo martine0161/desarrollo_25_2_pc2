@@ -1,4 +1,3 @@
-```markdown
 # Bitácora Sprint 3 - Validación e Integración Final
 
 **Responsable:** Ariana Mercado  
@@ -91,4 +90,3 @@ TIMEOUT_SEC: 5
 - Variables de entorno configurables y funcionales
 
 **Proyecto completado cumpliendo todos los requisitos del documento.**
-```
