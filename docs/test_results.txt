@@ -1,0 +1,49 @@
+[0;34mVerificando herramientas requeridas...[0m
+[0;32m✓[0m nc disponible
+[0;32m✓[0m ss disponible
+[0;32m✓[0m curl disponible
+[0;32m✓[0m grep disponible
+[0;32m✓[0m sed disponible
+[0;32m✓[0m awk disponible
+[0;32m✓[0m cut disponible
+[0;32m✓[0m sort disponible
+[0;32m✓[0m uniq disponible
+[0;32m✓[0m tr disponible
+[0;32m✓[0m bats disponible
+[0;32mTodas las herramientas críticas están disponibles[0m
+[0;34mPreparando entorno de construcción...[0m
+[0;32m✓[0m Directorios creados: out/, dist/
+[0;34mVerificando sintaxis de scripts...[0m
+[0;32m✓[0m src/classify_failures.sh sintaxis válida
+[0;32m✓[0m src/generate_logbook.sh sintaxis válida
+[0;32m✓[0m src/probe_tcp.sh sintaxis válida
+[0;32m✓[0m src/validate_integration.sh sintaxis válida
+[0;32mBuild completado exitosamente[0m
+[0;34mEjecutando suite de pruebas...[0m
+1..25
+ok 1 classify_failures.sh auto debe generar failure_classification.csv
+ok 2 dns_check debe detectar fallo de DNS
+ok 3 dns_check debe detectar timeout
+ok 4 Proyecto tiene estructura mínima requerida
+ok 5 Documentación completa
+ok 6 Scripts tienen permisos de ejecución
+ok 7 Makefile tiene todos los targets obligatorios
+ok 8 make tools verifica herramientas
+ok 9 make help muestra información
+ok 10 make info muestra configuración
+ok 11 make build crea directorios
+ok 12 probe_tcp.sh genera CSV válido
+ok 13 classify_failures.sh funciona en modo auto
+ok 14 generate_logbook.sh crea bitácora
+ok 15 Contrato de salidas está documentado
+ok 16 README documenta variables de entorno
+ok 17 Variables tienen valores por defecto en Makefile
+ok 18 Regla patrón CSV a TXT funciona
+ok 19 Scripts manejan errores correctamente
+ok 20 generate_logbook.sh auto debe crear bitácora
+ok 21 bitácora debe contener secciones obligatorias
+ok 22 probe_tcp.sh debe generar CSV con headers correctos
+ok 23 puerto abierto debe reportar status OPEN
+ok 24 puerto cerrado debe reportar status CLOSED
+ok 25 timeout debe manejarse correctamente
+[0;32m✓ Todas las pruebas pasaron[0m

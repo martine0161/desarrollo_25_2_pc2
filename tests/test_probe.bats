@@ -14,9 +14,9 @@
     [ "$status" -eq 0 ]
     [ -f "out/test/tcp_probes.csv" ]
     
-    # Verificar header
+    # Verificar header - CORREGIDO para incluir failure_reason
     header=$(head -n1 out/test/tcp_probes.csv)
-    [[ "$header" == "timestamp,host,port,status,latency_ms,socket_state" ]]
+    [[ "$header" == "timestamp,host,port,status,latency_ms,socket_state,failure_reason" ]]
 }
 
 @test "puerto abierto debe reportar status OPEN" {

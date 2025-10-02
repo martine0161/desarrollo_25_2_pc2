@@ -246,6 +246,31 @@ help: ## Describir uso de cada target
 	@echo "  make demonstrate-cache"
 	@echo "  make pack"
 
+install-systemd: ## Instalar servicio systemd (requiere sudo)
+	@echo -e "$(BLUE)Instalando servicio systemd...$(NC)"
+	@if [ "$$(id -u)" -ne 0 ]; then \
+		echo -e "$(YELLOW)Este comando requiere sudo$(NC)" ; \
+		echo "Ejecutar: sudo make install-systemd" ; \
+		exit 1 ; \
+	fi
+	cp systemd/tcp-monitor.service /etc/systemd/system/
+	systemctl daemon-reload
+	@echo -e "$(GREEN)✓ Servicio instalado$(NC)"
+	@echo "Habilitar: sudo systemctl enable tcp-monitor.service"
+	@echo "Iniciar: sudo systemctl start tcp-monitor.service"
+
+uninstall-systemd: ## Desinstalar servicio systemd (requiere sudo)
+	@echo -e "$(BLUE)Desinstalando servicio systemd...$(NC)"
+	@if [ "$$(id -u)" -ne 0 ]; then \
+		echo -e "$(YELLOW)Este comando requiere sudo$(NC)" ; \
+		exit 1 ; \
+	fi
+	systemctl stop tcp-monitor.service 2>/dev/null || true
+	systemctl disable tcp-monitor.service 2>/dev/null || true
+	rm -f /etc/systemd/system/tcp-monitor.service
+	systemctl daemon-reload
+	@echo -e "$(GREEN)✓ Servicio desinstalado$(NC)"
+	
 ###############################
 # TARGETS ADICIONALES ÚTILES #
 ###############################
