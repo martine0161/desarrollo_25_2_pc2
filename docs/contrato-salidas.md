@@ -1,22 +1,29 @@
-# Contrato de Salidas - TCP Probes
+### Contrato de Salidas - TCP Smoke Tests
 
-## Archivos Generados
+## Archivos Generados en `out/`
 
-### out/tcp_probes.csv
-
-**Ubicación**: `out/tcp_probes.csv`
+### 1. tcp_probes.csv
 
 **Formato**: CSV con 7 columnas separadas por coma
 
 **Columnas**:
-1. timestamp - Fecha y hora en formato YYYY-MM-DD HH:MM:SS
-2. host - Hostname o IP probada
-3. port - Puerto TCP probado
-4. status - OPEN o CLOSED
-5. latency_ms - Latencia en milisegundos o N/A
-6. socket_state - Estado del socket (LISTEN, NOT_LISTENING, N/A)
-7. failure_reason - Clasificación de fallo (TIMEOUT, PORT_CLOSED, DNS_FAILURE, N/A)
+| # | Nombre | Tipo | Descripción | Ejemplo |
+|---|--------|------|-------------|---------|
+| 1 | timestamp | datetime | Fecha y hora formato YYYY-MM-DD HH:MM:SS | 2025-10-01 00:01:19 |
+| 2 | host | string | Hostname o IP probada | google.com |
+| 3 | port | integer | Puerto TCP probado | 80 |
+| 4 | status | enum | OPEN o CLOSED | OPEN |
+| 5 | latency_ms | integer/NA | Latencia en milisegundos | 46 |
+| 6 | socket_state | string | LISTENING,pid=X o NOT_LISTENING o N/A | LISTENING,pid=1234 |
+| 7 | failure_reason | string | TIMEOUT, PORT_CLOSED, DNS_FAILURE, N/A | N/A |
 
+**Validación**:
+```bash
+# Verificar formato
+head -1 out/tcp_probes.csv | grep -q "timestamp,host,port,status"
+
+# Contar registros
+wc -l out/tcp_probes.csv
 **Ejemplo de contenido**:
 ```csv
 timestamp,host,port,status,latency_ms,socket_state,failure_reason
