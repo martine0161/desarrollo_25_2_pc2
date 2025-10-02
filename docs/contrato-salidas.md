@@ -17,10 +17,22 @@
 | 6 | socket_state | string | LISTENING,pid=X o NOT_LISTENING o N/A | LISTENING,pid=1234 |
 | 7 | failure_reason | string | TIMEOUT, PORT_CLOSED, DNS_FAILURE, N/A | N/A |
 
+### 2. failure_classification.csv
+
+**Formato**: CSV con 5 columnas
+
+**Columnas**:
+| Nombre | Descripción | Valores posibles |
+|--------|-------------|------------------|
+| host | Hostname probado | string |
+| port | Puerto probado | integer |
+| status | Estado del puerto | OPEN, CLOSED |
+| failure_type | Categoría del fallo | DNS_FAILURE, FIREWALL, SERVICE_DOWN, SUCCESS, UNKNOWN |
+| recommendation | Acción sugerida | string descriptivo |
+
 **Validación**:
 ```bash
-# Verificar formato
-head -1 out/tcp_probes.csv | grep -q "timestamp,host,port,status"
+grep -E "DNS_FAILURE|FIREWALL|SERVICE_DOWN" out/failure_classification.csv
 
 # Contar registros
 wc -l out/tcp_probes.csv

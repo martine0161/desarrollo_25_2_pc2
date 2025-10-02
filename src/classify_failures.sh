@@ -4,7 +4,8 @@ set -euo pipefail
 
 FILE_OUTPUT="nc_result.csv"
 RAW_FILE_OUTPUT="raw_result.csv"
-# Función para mapear errores de resolucion de NDS
+
+# Función para mapear errores de resolucion de DNS
 dns_check() {
   local HOST="${1:-}"
   local PORT="${2:-}"
@@ -45,6 +46,7 @@ dns_check() {
   nc -4 -vzw3 "$HOST" "$PORT" 2>&1 | tail -n 1 >"$TMP"
   exitcode=$?
   set -e
+  
   # Revisa que tipo de fallo se registro en la prueba
   classify() {
     local f="$1"
@@ -105,20 +107,88 @@ show_report() {
     cat "$PATH_FILE_OUTPUT" | column -t -s ","
 }
 
+# Nueva función para flujo automático desde probe_tcp.sh
+auto_classify() {
+    local INPUT_FILE="${INPUT_FILE:-${OUTPUT_DIR:-out}/tcp_probes.csv}"
+    local OUTPUT_FILE="${OUTPUT_DIR:-out}/failure_classification.csv"
+    
+    if [ ! -f "$INPUT_FILE" ]; then
+        echo "Error: No se encontró $INPUT_FILE" >&2
+        return 1
+    fi
+    
+    echo "host,port,status,failure_type,recommendation" > "$OUTPUT_FILE"
+    
+    # Leer CSV y clasificar cada línea
+    tail -n +2 "$INPUT_FILE" | while IFS=',' read -r timestamp host port status latency socket failure_reason; do
+        # Limpiar espacios
+        host=$(echo "$host" | tr -d ' ')
+        port=$(echo "$port" | tr -d ' ')
+        status=$(echo "$status" | tr -d ' ')
+        failure_reason=$(echo "$failure_reason" | tr -d ' ')
+        
+        local failure_type=""
+        local recommendation=""
+        
+        case "$failure_reason" in
+            "DNS_FAILURE")
+                failure_type="DNS_FAILURE"
+                recommendation="Verificar resolución DNS"
+                ;;
+            "TIMEOUT")
+                failure_type="FIREWALL"
+                recommendation="Revisar reglas de firewall"
+                ;;
+            "PORT_CLOSED")
+                failure_type="SERVICE_DOWN"
+                recommendation="Verificar si servicio está corriendo"
+                ;;
+            "N/A")
+                failure_type="SUCCESS"
+                recommendation="Puerto accesible - OK"
+                ;;
+            *)
+                failure_type="UNKNOWN"
+                recommendation="Investigar causa específica"
+                ;;
+        esac
+        
+        echo "$host,$port,$status,$failure_type,$recommendation" >> "$OUTPUT_FILE"
+    done
+    
+    echo "Clasificación completada: $OUTPUT_FILE"
+}
+
 # Función de ayuda
 show_help() {
     cat << EOF
 Uso: $0 <comando> [parámetros]
 
 Comandos disponibles:
+  auto                                 - Clasificación automática desde tcp_probes.csv (DEFAULT)
   dns_check <host> <puerto> [out_dir]  - Resuelve DNS de host ingresado
   show_report [out_dir]                - Muestra el reporte generado por dns_check
   help                                 - Muestra esta ayuda
 EOF
 }
 
-case "${1:-help}" in
-    dns_check) shift; dns_check "$@" ;;
-    show_report)  shift; show_report "${@:-./out}" ;;
-    help|*)  show_help ;;
+# UN SOLO CASE - Modificado para incluir auto_classify como default
+case "${1:-auto}" in
+    dns_check) 
+        shift
+        dns_check "$@"
+        ;;
+    show_report)
+        shift
+        show_report "${@:-./out}"
+        ;;
+    auto)
+        auto_classify
+        ;;
+    help)
+        show_help
+        ;;
+    *)
+        auto_classify
+        ;;
 esac
