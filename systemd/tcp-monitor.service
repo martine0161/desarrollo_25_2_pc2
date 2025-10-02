@@ -1,0 +1,74 @@
+[Unit]
+Description=TCP Smoke Test Monitor
+Documentation=file:///opt/tcp-smoke/docs/README.md
+After=network-online.target
+Wants=network-online.target
+Requires=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/tcp-smoke/src/probe_tcp.sh
+ExecStartPost=/opt/tcp-smoke/src/classify_failures.sh
+ExecStartPost=/opt/tcp-smoke/src/generate_logbook.sh
+
+# Usuario y grupo específicos (crear previamente)
+User=tcp-monitor
+Group=tcp-monitor
+
+# Directorio de trabajo
+WorkingDirectory=/opt/tcp-smoke
+
+# Variables de entorno para configuración
+Environment=OUTPUT_DIR=/var/log/tcp-monitor
+Environment=HOSTS=localhost,google.com,github.com
+Environment=PORTS=22,80,443,8080
+Environment=TIMEOUT_SEC=10
+Environment=VERBOSE=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tcp-smoke
+
+# Configuración de reintentos
+Restart=on-failure
+RestartSec=300
+StartLimitInterval=3600
+StartLimitBurst=5
+
+# Seguridad del servicio
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/log/tcp-monitor
+ReadOnlyPaths=/opt/tcp-smoke
+
+# Recursos del sistema
+MemoryLimit=256M
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+# Capacidades de red limitadas
+CapabilityBoundingSet=CAP_NET_RAW
+AmbientCapabilities=CAP_NET_RAW
+
+[Install]
+WantedBy=multi-user.target
+
+# Comentarios de configuración:
+#
+# Para instalar este servicio:
+# 1. sudo cp systemd/tcp-monitor.service /etc/systemd/system/
+# 2. sudo systemctl daemon-reload
+# 3. sudo useradd -r -s /bin/false tcp-monitor
+# 4. sudo mkdir -p /var/log/tcp-monitor
+# 5. sudo chown tcp-monitor:tcp-monitor /var/log/tcp-monitor
+# 6. sudo systemctl enable tcp-monitor.service
+# 7. sudo systemctl start tcp-monitor.service
+#
+# Para ver logs:
+# journalctl -u tcp-monitor.service -f
+#
+# Para ver estado:
+# systemctl status tcp-monitor.service
