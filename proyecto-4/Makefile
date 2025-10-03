@@ -30,7 +30,7 @@ help: ## Muestra los targets disponibles para el proyecto
 	@echo "Variables configurables:"
 	@echo "  HOST=<hostname>    Servidor destino (default: $(HOST))"
 	@echo "  PORT=<puerto>      Puerto destino (default: $(PORT))"
-	@echo "  DATE=<fecha>       Fecha en formato dd-mm-yy (default: hoy)"
+	@echo "  DATE=[fecha]       Fecha en formato dd-mm-yy (default: hoy)"
 	@echo "  HOSTS=[lista]      Lista de hosts para filtrar reportes"
 	@echo ""
 	@echo "Targets disponibles:"
@@ -51,7 +51,7 @@ result_dns: ## Muestra resultados de pruebas dns_check
 	@./$(SRC_DIR)/classify_failures.sh show_report ./$(OUT_DIR)
 
 .PHONY: generate_report_dns
-generate_report_dns: ## Genera reporte para pruebas de DNS realizadas, Args: <DATE> [HOSTS]
+generate_report_dns: ## Genera reporte para pruebas de DNS realizadas, Args: [DATE] [HOSTS]
 	@echo "Reporte de pruebas DNS el $(DATE)"
 	@$(call check_format_date,$(DATE))
 	@if [ -n "$(HOSTS)" ]; then \
