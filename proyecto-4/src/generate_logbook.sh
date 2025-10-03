@@ -25,10 +25,7 @@ report_filter() {
   fi
 
   # Quitamos el encabezado del archivo
-  DATA=$(tail -n +2 "$FILE")
-
-  # Filtrar las líneas que coincidan con la fecha
-  DATA=$(grep "^$DATE" "$FILE")
+  DATA=$(tail -n +2 "$FILE" | grep "^$DATE" || true)
 
   if [ -z "$DATA" ]; then
     echo "No hay registros para la fecha $DATE"
