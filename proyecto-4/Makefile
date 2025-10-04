@@ -59,4 +59,8 @@ generate_report_dns: ## Genera reporte para pruebas de DNS realizadas, Args: [DA
 	else \
 			./$(SRC_DIR)/generate_logbook.sh --reporte ./$(OUT_DIR)/nc_result.csv $(DATE); \
 	fi
-	
+
+.PHONY: test_classify_failures
+test_classify_failures: ## Ejecuta test con bats
+	@echo "Iniciando test para classify_failures.sh"
+	@bats $(TEST_DIR)/test_classify.bats
