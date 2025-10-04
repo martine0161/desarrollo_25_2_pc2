@@ -7,7 +7,7 @@ Enfocado en implementar reporte de resultados de resolución de DNS.
 
 Agregar script `generate_logbook.sh` encargado de generar reporte consolidado de pruebas realizados con script `classify_failures.sh`, se genera el reporte a partir de nc_result.csv generado en el análisis.
 
-### puntos a desarrollar
+### Puntos a desarrollar
 
 - implementar script `generate_logbook.sh` para generar reporte de resultados de resolución de DNS a partir de los logs generados en el sprint 1.
 - Agregar target en Makefile para ejecutar script `generate_logbook.sh`.
