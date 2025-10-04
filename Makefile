@@ -11,7 +11,8 @@ TEST_DIR := tests
 DOCS_DIR := docs
 OUTPUT_DIR := out
 DIST_DIR := dist
-OUT_DIR := out  # Compatibilidad
+# Compatibilidad
+OUT_DIR := out
 
 # Metadatos del proyecto
 PROJECT_NAME := tcp-smoke
@@ -24,7 +25,7 @@ PORTS ?= 22,80,443
 TIMEOUT_SEC ?= 5
 PORT ?= 80
 HOST ?= db-beta.imaxempresarial.com
-
+DATE ?= $(shell date +%d-%m-%y)
 # Herramientas requeridas según el documento
 REQUIRED_TOOLS := nc ss curl grep sed awk cut sort uniq tr bats
 
@@ -164,7 +165,7 @@ run: build ## Ejecutar flujo principal (sondeo → clasificación → bitácora)
 	@echo -e "$(GREEN)Flujo ejecutado. Resultados en $(OUTPUT_DIR)/$(NC)"
 
 # Verificación de conectividad específica
-dns_check: build ## Verifica resolución de DNS generando bitacora de resultados
+dns_check: ## Verifica resolución de DNS generando bitacora de resultados
 	@echo -e "$(BLUE)Prueba de resolución de DNS específica...$(NC)"
 	@echo "Host: $(HOST), Puerto: $(PORT)"
 	@if [ -x "$(SRC_DIR)/classify_failures.sh" ]; then \
@@ -172,7 +173,6 @@ dns_check: build ## Verifica resolución de DNS generando bitacora de resultados
 		echo -e "$(GREEN)✓ Prueba DNS completada$(NC)" ; \
 	else \
 		echo -e "$(YELLOW)⚠ classify_failures.sh no disponible$(NC)" ; \
-		# Fallback básico
 		@echo "Resolución DNS básica para $(HOST):" ; \
 		nslookup $(HOST) 2>/dev/null && echo -e "$(GREEN)✓ DNS resuelve$(NC)" || echo -e "$(RED)✗ DNS falla$(NC)" ; \
 	fi
@@ -188,6 +188,26 @@ show_report: ## Muestra reporte de resultados para dns_check
 		else \
 			echo "No hay reportes disponibles" ; \
 		fi \
+	fi
+
+dns_check_all: ## Verifica DNS para múltiples hosts y puertos
+	@echo -e "$(BLUE)Prueba de resolución de DNS para múltiples hosts y puertos...$(NC)"
+	$(foreach host,$(shell echo "$(HOSTS)" | tr ',' ' '), \
+		$(foreach port,$(shell echo "$(PORTS)" | tr ',' ' '), \
+			echo "=== Probando $(host):$(port) ===" ; \
+			$(MAKE) --no-print-directory dns_check HOST=$(host) PORT=$(port) ; \
+			echo "" ; \
+		) \
+	)
+
+.PHONY: generate_report_dns
+generate_report_dns: show_report ## Genera reporte para pruebas de DNS realizadas, Args: [DATE] [LIST_HOSTS]
+	@echo "Reporte de pruebas DNS el $(DATE)"
+	@$(call check_format_date,$(DATE))
+	@if [ -n "$(LIST_HOSTS)" ]; then \
+    ./$(SRC_DIR)/generate_logbook.sh --reporte ./$(OUT_DIR)/nc_result.csv $(DATE) "$(HOSTS)"; \
+	else \
+			./$(SRC_DIR)/generate_logbook.sh --reporte ./$(OUT_DIR)/nc_result.csv $(DATE); \
 	fi
 
 pack: test ## Crear paquete reproducible en dist/ (nomenclatura con RELEASE)
@@ -303,6 +323,13 @@ metrics: ## Mostrar métricas básicas del proyecto
 ###################################
 # REGLAS PATRÓN Y CACHÉ INCREMENTAL #
 ###################################
+define check_format_date
+	@if ! echo $1 | grep -Eq '^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-[0-9]{2}$$'; then \
+		echo "Formato de fecha inválido:$1"; \
+		echo "Ingrese en formato dd-mm-yy (01-05-25)"; \
+		exit 1; \
+	fi
+endef
 
 # Regla patrón: transformar CSV a texto tabulado
 $(OUTPUT_DIR)/%.txt: $(OUTPUT_DIR)/%.csv
